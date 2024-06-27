@@ -16,7 +16,7 @@ test('blogs are returned as json', async () => {
 
 test('app returns correct amount of blog posts', async () => {
     const response = await api.get('/api/blogs')
-    assert.strictEqual(response.body.length, 2)
+    assert.strictEqual(response.body.length, 8)
 })
 
 test(`identifier property is called 'id', not '_id'`, async () => {
@@ -49,6 +49,54 @@ test('likes are set to 0 if \'likes\' property is missing', async () => {
     
     assert.strictEqual(savedLikesTest.likes, 0)
     await blog.findByIdAndDelete(savedLikesTest._id)
+})
+
+test('response 400 if title is missing', async () => {
+    const titleMissing = { author: 'author', url: 'testurl', likes: 0 }
+    const response = await api
+        .post('/api/blogs')
+        .send(titleMissing)
+
+    assert.strictEqual(response.status, 400)
+})
+
+test('response 400 if url is missing', async () => {
+    const urlMissing = { title: 'title', author: 'author', likes: 0 }
+    const response = await api
+        .post('/api/blogs')
+        .send(urlMissing)
+
+    assert.strictEqual(response.status, 400)
+})
+
+test('deleting resource', async () => {
+    const postToDelete = new blog({ title:'idk', author:'authhhor', url:'urll', likes: 99})
+    const savedPostToDelete = await postToDelete.save()
+
+    const id = savedPostToDelete._id.toString()
+
+    await api
+        .delete(`/api/blogs/${savedPostToDelete.id}`)
+        .expect(204)
+
+    const response = await blog.findById(id)
+
+    assert.strictEqual(response, null)      
+})
+
+test('updating resource', async () => {
+    const postTestUpdate = new blog({ title:'blabbla', author:'yes', url:'urlssl', likes: 0})
+    const savedPostTestUpdate = await postTestUpdate.save()
+
+    const updatedBlog = { title:'blabbla', author:'yes', url:'urlssl', likes: 5}
+
+    const response = await api
+        .put(`/api/blogs/${savedPostTestUpdate.id}`)
+        .send(updatedBlog)
+
+    assert.strictEqual(response.status, 200)
+    await blog.findByIdAndDelete(savedPostTestUpdate._id)
+
 })
 
 after(async () => {
